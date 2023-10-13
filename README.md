@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Next 13 graceful shutdown not honored
 
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+This repo was created via:
+```
+npx create-next-app@latest
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+and [following the 'Manual Graceful Shutdowns' instructions](https://nextjs.org/docs/app/building-your-application/deploying#manual-graceful-shutdowns)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Background
+Next documents a means for gracefully shutting down the server via an
+environment variable `NEXT_MANUAL_SIG_HANDLE`.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+Running the server via:
+```
+NEXT_MANUAL_SIG_HANDLE=true next start
+```
 
-## Learn More
+after having built it with a custom event handler setup in `app/layout.tsx`:
 
-To learn more about Next.js, take a look at the following resources:
+```
+if (process.env.NEXT_MANUAL_SIG_HANDLE) {
+  // this should be added in your custom _document
+  process.on('SIGTERM', () => {
+    console.log('Received SIGTERM: ', 'cleaning up')
+    process.exit(0)
+  })
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+  process.on('SIGINT', () => {
+    console.log('Received SIGINT: ', 'cleaning up')
+    process.exit(0)
+  })
+}
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+We expect to see our custom event handler executed when we send
+`SIGINT` to the process.
 
-## Deploy on Vercel
+## How to reproduce this bug:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Start the next server:
+```
+git clone https://github.com/higgins/next13-graceful-shutdown-bug.git
+cd next13-graceful-shutdown-bug
+npm i
+npm start
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+### Kill the server:
+`Ctrl-C` to the running process
+
+### Observe:
+You do not see `Received SIGINT: cleaning up` in the logs
