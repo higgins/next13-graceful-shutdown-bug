@@ -43,6 +43,7 @@ We expect to see our custom event handler executed when we send
 git clone https://github.com/higgins/next13-graceful-shutdown-bug.git
 cd next13-graceful-shutdown-bug
 npm i
+npm run build
 npm start
 ```
 
